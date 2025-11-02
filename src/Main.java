@@ -23,10 +23,10 @@ abstract class Payment implements Payable {
         this.referenceId = referenceId;
     }
 
-    // Abstract method - must be implemented by subclasses
+   
     public abstract void processPayment();
 
-    // Concrete method - shared among all payment types
+    //concrete method
     public void generateReceipt() {
         System.out.println("------ Payment Receipt ------");
         System.out.println("Amount      : " + amount);
@@ -42,9 +42,7 @@ abstract class Payment implements Payable {
     }
 }
 
-// ===========================
-// Subclasses
-// ===========================
+
 
 class CashOnDelivery extends Payment {
     public String address;
@@ -84,9 +82,7 @@ class BankTransfer extends Payment {
     }
 }
 
-// ===========================
-// Abstract Card Payment
-// ===========================
+
 
 abstract class CardPayment extends Payment {
     public String cardNumber;
@@ -107,9 +103,7 @@ abstract class CardPayment extends Payment {
     }
 }
 
-// ===========================
-// Concrete Card Payments
-// ===========================
+
 
 class CreditCardPayment extends CardPayment implements Discount {
 
@@ -157,11 +151,7 @@ class DebitCardPayment extends CardPayment implements Discount {
     public double finalAmount() {
         return amount;
     }
-}
 
-// ===========================
-// Main Class
-// ===========================
 
 public class Main {
     public static void main(String[] args) {
