@@ -146,8 +146,4 @@ public class CardPayment extends Payment implements Refundable {
 
 ---
 
-If you want, I can:
-- update the repository's README.md with this version, or
-- also add small example files (Payment.java, CardPayment.java) to the repo for a runnable demo.
 
-Which would you like me to do next?
