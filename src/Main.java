@@ -1,140 +1,185 @@
 
-class Payment{
-    public double amount;
+interface Payable {
+    boolean validate();
+    String getReference();
+}
+
+interface Discount {
+    double applyDiscount(double percentage);
+    double finalAmount();
+}
+
+
+abstract class Payment implements Payable {
+    public int amount;
     public String currency;
     public String status;
+    public String referenceId;
 
-    public Payment(double amount,String currency, String status){
+    public Payment(int amount, String currency, String status, String referenceId) {
         this.amount = amount;
         this.currency = currency;
         this.status = status;
+        this.referenceId = referenceId;
     }
 
+   
+    public abstract void processPayment();
 
-    public void processpayment(){
-        System.out.println("Processing generic payment");
+    //concrete method
+    public void generateReceipt() {
+        System.out.println("------ Payment Receipt ------");
+        System.out.println("Amount      : " + amount);
+        System.out.println("Currency    : " + currency);
+        System.out.println("Status      : " + status);
+        System.out.println("ReferenceID : " + referenceId);
+        System.out.println("-----------------------------");
     }
-    public void genericReceipt(){
-        System.out.println("Receipt for amount "+this.amount+" Currency :"+this.currency);
-    }
-    public String markAsCompleated(){
-        this.status = "COMPLEATED";
-        return this.status;
-    }
-}
-
-class CahsOnDelivery extends Payment{
-    public String deliveryAddress;
-    public CahsOnDelivery(double amount,String currency, String status, String address){
-        super(amount,currency,status);
-        this.deliveryAddress = address;
-    }
-
 
     @Override
-    public void processpayment(){
-        System.out.println("Cash will be collected at dellivery address : "+this.deliveryAddress);
-
+    public String getReference() {
+        return referenceId;
     }
-
 }
 
- class BankTransfer extends Payment{
-    public String bankName;
-    public String accountNumber;
-    public String referenceCode;
 
-    public BankTransfer(double amount,String currency, String status,String bankName,String accountNumber,String referenceCode){
-        super(amount, currency, status);
-        this.bankName = bankName;
-        this.accountNumber = accountNumber;
-        this.referenceCode = referenceCode;
+
+class CashOnDelivery extends Payment {
+    public String address;
+
+    public CashOnDelivery(int amount, String currency, String status, String referenceId, String address) {
+        super(amount, currency, status, referenceId);
+        this.address = address;
     }
+
     @Override
-     public void processpayment(){
-        System.out.println("Initiating bank transfer to  "+this.bankName+ " using account "+this.accountNumber+ " with reference "+ this.referenceCode);
-        this.markAsCompleated();
+    public void processPayment() {
+        System.out.println("Cash will be collected at delivery address: " + address);
+        this.status = "Pending Collection";
     }
 
+    @Override
+    public boolean validate() {
+
+        return address != null && !address.isEmpty();
+    }
 }
-class CardPayment extends Payment{
+
+class BankTransfer extends Payment {
+    public BankTransfer(int amount, String currency, String status, String referenceId) {
+        super(amount, currency, status, referenceId);
+    }
+
+    @Override
+    public void processPayment() {
+        System.out.println("Processing bank transfer for Reference ID: " + referenceId);
+        this.status = "Completed";
+    }
+
+    @Override
+    public boolean validate() {
+        return referenceId != null && referenceId.startsWith("BNK");
+    }
+}
+
+
+
+abstract class CardPayment extends Payment {
     public String cardNumber;
-    public String cardHolderName;
-    public String expireDate;
+    public String holder;
+    public String expiry;
 
-
-    public CardPayment(double amount,String currency, String status,String number,String name,String expDate){
-        super(amount, currency, status);
-        this.cardNumber = number;
-        this.cardHolderName = name;
-        this.expireDate = expDate;
+    public CardPayment(int amount, String currency, String status, String referenceId,
+                       String cardNumber, String holder, String expiry) {
+        super(amount, currency, status, referenceId);
+        this.cardNumber = cardNumber;
+        this.holder = holder;
+        this.expiry = expiry;
     }
+
     @Override
-    public void processpayment(){
-        System.out.println("Authorizing card payment for "+ this.cardHolderName);
-
-    }
-    public void validCard(){
-        System.out.println("Validating card number format ...");
-
-    }
-    class DebitCardPayment extends CardPayment{
-        public double avilableBalance;
-
-        public DebitCardPayment(double amount,String currency, String status,String number,String name,String expDate ,double balance){
-            super(amount, currency, status, number, name, expDate);
-            this.avilableBalance = balance;
-        }
-
-        @Override
-        public void processpayment(){
-            System.out.println("Debiting from account balnce "+ this.avilableBalance+ " for amount"+ this.amount);
-
-
-        }
-        public void checkSufficientBalance(){
-            System.out.println("Checking if balance covers amount ");
-        }
-    }
-    class CreditCardPayment extends CardPayment{
-        public double creditLimit;
-        public CreditCardPayment(double amount,String currency, String status,String number,String name,String expDate ,double creditLimit){
-            super(amount, currency, status, number, name, expDate);
-            this.creditLimit = creditLimit;
-
-        }
-
-        @Override
-        public void processpayment(){
-            System.out.println("Charging credit card with limit "+this.creditLimit+ " for amount "+this.amount);
-
-        }
-        public void applyInterest(){
-            System.out.println("Applying interest if payment is settleed by due date");
-
-        }
+    public boolean validate() {
+        return cardNumber != null && cardNumber.length() == 16;
     }
 }
+
+
+
+class CreditCardPayment extends CardPayment implements Discount {
+
+    public CreditCardPayment(int amount, String currency, String status, String referenceId,
+                             String cardNumber, String holder, String expiry) {
+        super(amount, currency, status, referenceId, cardNumber, holder, expiry);
+    }
+
+    @Override
+    public void processPayment() {
+        System.out.println("Processing credit card payment for cardholder: " + holder);
+        this.status = "Paid";
+    }
+
+    @Override
+    public double applyDiscount(double percentage) {
+        return amount - (amount * (percentage / 100));
+    }
+
+    @Override
+    public double finalAmount() {
+        return amount;
+    }
+}
+
+class DebitCardPayment extends CardPayment implements Discount {
+
+    public DebitCardPayment(int amount, String currency, String status, String referenceId,
+                            String cardNumber, String holder, String expiry) {
+        super(amount, currency, status, referenceId, cardNumber, holder, expiry);
+    }
+
+    @Override
+    public void processPayment() {
+        System.out.println("Processing debit card payment for cardholder: " + holder);
+        this.status = "Paid";
+    }
+
+    @Override
+    public double applyDiscount(double percentage) {
+        return amount - (amount * (percentage / 100));
+    }
+
+    @Override
+    public double finalAmount() {
+        return amount;
+    }
 
 
 public class Main {
     public static void main(String[] args) {
-        CahsOnDelivery cod1 = new CahsOnDelivery(1500, "USD", "PENDING", "123 Main Street");
-        BankTransfer bt1 = new BankTransfer(2000, "USD", "PENDING", "ABC Bank", "12345678", "REF001");
 
-        CardPayment outer = new CardPayment(1000, "USD", "PENDING", "1111-2222-3333-4444", "Sithija", "12/25");
-        CardPayment.CreditCardPayment cp = outer.new CreditCardPayment(1000, "USD", "PENDING", "1111-2222-3333-4444", "Sithija", "12/25", 5000);
-        CardPayment.DebitCardPayment dp = outer.new DebitCardPayment(500, "USD", "PENDING", "1111-2222-3333-4444", "Sithija", "12/25", 2000);
+        Payment cod = new CashOnDelivery(5000, "LKR", "Pending", "COD123", "No.25, Colombo");
+        cod.processPayment();
+        cod.generateReceipt();
 
-        cod1.processpayment();
-        bt1.processpayment();
-        cp.processpayment();
-        dp.processpayment();
+        Payment bank = new BankTransfer(8000, "LKR", "Pending", "BNK5467");
+        bank.processPayment();
+        bank.generateReceipt();
 
-        cod1.genericReceipt();
-        bt1.genericReceipt();
-        cp.genericReceipt();
-        dp.genericReceipt();
+        CreditCardPayment credit = new CreditCardPayment(
+                10000, "LKR", "Pending", "CRD789",
+                "1234567812345678", "Sithi", "12/30");
+
+        credit.processPayment();
+        credit.generateReceipt();
+        System.out.println("After Discount: " + credit.applyDiscount(10));
+
+
+        DebitCardPayment debit = new DebitCardPayment(7000, "LKR", "Pending", "DBT321",
+                "8765432187654321", "John", "11/29");
+
+
+        debit.processPayment();
+        debit.generateReceipt();
+        System.out.println("After Discount: " + debit.applyDiscount(5));
+
     }
 }
-
